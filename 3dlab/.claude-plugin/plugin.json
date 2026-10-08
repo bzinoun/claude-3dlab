@@ -1,7 +1,7 @@
 {
   "name": "3dlab",
-  "description": "Trophées imprimables sur Bambu Lab avec AMS : /3DBuild, /3DShow, /3DPrint, /3DSetup",
-  "version": "1.1.0",
+  "description": "Objets imprimables en 3D sur Bambu Lab avec AMS : /3DBuild, /3DShow, /3DPrint, /3DSetup",
+  "version": "1.2.0",
   "author": {
     "name": "bzinoun",
     "url": "https://github.com/bzinoun"
@@ -12,7 +12,9 @@
     "3d-printing",
     "bambu-lab",
     "blender",
-    "trophy",
-    "manifold3d"
+    "cad",
+    "manifold3d",
+    "ams",
+    "trophy"
   ]
 }

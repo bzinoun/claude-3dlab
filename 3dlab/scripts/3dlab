@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lanceur du plugin 3dlab : trouve (ou crée au premier appel) un Python avec les dépendances, puis lance demo.py.
+# Lanceur du plugin 3dlab : trouve (ou crée au premier appel) un Python avec les dépendances, puis lance atelier.py.
 #   THREEDLAB_PYTHON  interpréteur à utiliser tel quel (facultatif)
 #   THREEDLAB_VENV    environnement créé au premier appel (défaut : ~/.3dlab/venv)
 set -euo pipefail
@@ -28,4 +28,4 @@ if [ -z "$PY" ]; then
   fi
   PY="$VENV/bin/python"
 fi
-exec "$PY" "$ROOT/demo.py" "$@"
+exec "$PY" "$ROOT/atelier.py" "$@"

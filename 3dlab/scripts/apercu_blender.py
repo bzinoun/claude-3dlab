@@ -1,6 +1,6 @@
-"""Aperçu de démo dans Blender (interface ouverte) : trophée monté, en couleurs, qui pivote lentement.
+"""Aperçu dans Blender (interface ouverte) : l'objet monté, en couleurs, qui pivote lentement.
 
-Lancé par demo.py :  Blender --python apercu_blender.py -- <dossier>/scene.json
+Lancé par atelier.py :  Blender --python apercu_blender.py -- <dossier>/scene.json
 scene.json : {"titre": str, "pieces": [{"stl", "couleur" (#hex), "rotation" (degrés XYZ), "position" (mm)}]}
 Au démarrage de l'interface les opérateurs (import, ajout d'objets) n'ont pas de contexte valide :
 tout est construit avec l'API de données ; seuls les réglages de la vue passent par un minuteur.
@@ -59,8 +59,8 @@ for o in list(bpy.data.objects):  # scène de démarrage (cube, lampe, caméra)
 sc.unit_settings.scale_length = 0.001  # les STL sont en mm
 sc.unit_settings.length_unit = "MILLIMETERS"
 
-pivot = add("Trophee", None)
-zmax = 0.0
+pivot = add("Modele", None)
+objets, lo, hi = [], [1e9] * 3, [-1e9] * 3
 for i, p in enumerate(spec["pieces"]):
     v, f = read_stl(p["stl"])
     me = bpy.data.meshes.new(f"piece{i}")
@@ -68,23 +68,31 @@ for i, p in enumerate(spec["pieces"]):
     me.materials.append(material(f"m{i}", p["couleur"]))
     o = add(f"piece{i}", me, p.get("position", (0, 0, 0)), p.get("rotation", (0, 0, 0)))
     o.parent = pivot
+    objets.append(o)
     rot = o.rotation_euler.to_matrix()
-    zmax = max(zmax, max((rot @ Vector(x)).z for x in v[::7]) + o.location.z)
+    for x in v[::7]:
+        w = rot @ Vector(x) + o.location
+        lo, hi = [min(a, b) for a, b in zip(lo, w)], [max(a, b) for a, b in zip(hi, w)]
 
-# balancement lent de ±35° : l'étoile et le texte restent face au public (le dos est uni)
+# l'objet monté est recentré (x, y) et posé sur le sol, quelle que soit la position de ses pièces
+for o in objets:
+    o.location = (o.location[0] - (lo[0] + hi[0]) / 2, o.location[1] - (lo[1] + hi[1]) / 2, o.location[2] - lo[2])
+dx, dy, dz = (hi[i] - lo[i] for i in range(3))
+
+# balancement lent de ±35° : la face avant (texte, décor) reste face au public
 sc.frame_start, sc.frame_end = 1, 240
 sc.render.fps = 30
 for frame, angle in ((1, -35), (121, 35), (241, -35)):
     pivot.rotation_euler = (0, 0, math.radians(angle))
     pivot.keyframe_insert("rotation_euler", index=2, frame=frame)
 
-# studio : trois lampes, socle tournant sombre, caméra cadrée sur la hauteur du trophée
-h = max(zmax, 60.0)
+# studio : trois lampes, socle tournant sombre ; caméra cadrée sur l'objet, plus plongeante s'il est plat
+h = max(dz, 0.75 * max(dx, dy), 40.0)
 for loc, energy, size, rot in (((-1.2 * h, -2.0 * h, 2.4 * h), 9e5, 2.2 * h, (42, 0, -28)),
                                ((2.0 * h, -0.6 * h, 1.3 * h), 3e5, 1.6 * h, (62, 0, 70)),
                                ((0, 1.8 * h, 1.6 * h), 4e5, 1.6 * h, (-45, 0, 0))):
     ld = bpy.data.lights.new("lampe", "AREA")
-    ld.energy, ld.size = energy, size
+    ld.energy, ld.size = energy * (h / 150) ** 2, size  # réglé pour 150 mm : même éclairement à toute échelle
     add("lampe", ld, loc, rot)
 r, n = 1.4 * h, 96
 ring = [(r * math.cos(2 * math.pi * k / n), r * math.sin(2 * math.pi * k / n)) for k in range(n)]
@@ -94,10 +102,12 @@ disc.from_pydata([(x, y, -2.0) for x, y in ring] + [(x, y, 0.0) for x, y in ring
                  [[k, (k + 1) % n, n + (k + 1) % n, n + k] for k in range(n)])
 disc.materials.append(material("sol", "#2a2a2e", 0.6))
 add("sol", disc)
-dist, elev = 3.0 * h, math.radians(14)
+elev = 14 if dz >= 0.6 * max(dx, dy) else 38
+dist = 3.0 * h
 cd = bpy.data.cameras.new("camera")
 cd.lens, cd.clip_end = 50, 100 * h
-sc.camera = add("camera", cd, (0, -dist * math.cos(elev), h / 2 + dist * math.sin(elev)), (90 - 14, 0, 0))
+sc.camera = add("camera", cd, (0, -dist * math.cos(math.radians(elev)), dz / 2 + dist * math.sin(math.radians(elev))),
+                (90 - elev, 0, 0))
 w = bpy.data.worlds.new("w")
 sc.world = w
 w.use_nodes = True

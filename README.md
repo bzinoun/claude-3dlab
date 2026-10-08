@@ -1,38 +1,50 @@
-# 3dlab : des trophées imprimables en 3 commandes Claude Code
+# 3dlab : de l'idée à l'impression 3D en 3 commandes Claude Code
 
-Plugin [Claude Code](https://claude.com/claude-code) qui modélise un trophée à partir d'une phrase, l'affiche dans
-Blender, puis prépare un projet **Bambu Studio** en couleurs (AMS), prêt à trancher.
+Plugin [Claude Code](https://claude.com/claude-code) qui modélise un objet à partir d'une phrase (porte-clés, support,
+boîte, plaque, pièce technique, trophée…), l'affiche dans Blender, puis prépare un projet **Bambu Studio** en
+couleurs (AMS), prêt à trancher.
 
 | Commande | Rôle |
 |---|---|
-| `/3DBuild <besoin>` | Modélise le trophée. Pose les questions qui manquent (texte, style, taille, couleurs). |
-| `/3DShow [modification]` | Ouvre le dernier modèle dans Blender : plein écran, en couleurs, qui pivote. Accepte une retouche (« en bleu, 170 mm »). |
+| `/3DBuild <besoin>` | Modélise l'objet. Pose les questions qui manquent (dimensions, couleurs, contraintes, texte). |
+| `/3DShow [modification]` | Ouvre le dernier modèle dans Blender : plein écran, en couleurs, qui pivote. Accepte une retouche (« en bleu », « 20 % plus grand »). |
 | `/3DPrint [précisions]` | Vérifie les filaments chargés dans l'AMS, puis ouvre le projet dans Bambu Studio (non tranché). |
 | `/3DSetup` | Vérifie l'installation (Python, Bambu Studio et ses réglages, Blender) et prépare l'environnement Python. |
 
-Exemple :
+Exemples :
 
 ```
 /3DSetup
+/3DBuild un porte-clés avec le mot AUSIM, noir et blanc, 6 cm
+/3DBuild un support de téléphone pour bureau, gris avec une bande orange
 /3DBuild une figurine pour les Assises de l'AUSIM 2026, 150 mm, aux couleurs du Maroc
-/3DShow
+/3DShow en bleu
 /3DPrint
 ```
 
 Le plugin ne tranche jamais et ne lance jamais d'impression : vous gardez la main dans Bambu Studio.
 
-## Styles
+## Comment Claude modélise
 
-| Style | Description | Hauteur |
+- **Objet libre** : Claude écrit un court script Python qui décrit l'objet avec la boîte à outils
+  [`outils3d.py`](3dlab/scripts/outils3d.py) (solides, extrusions 2D, texte en relief, trous, règles d'impression).
+  Le script renvoie des pièces : une pièce = une couleur, et les pièces d'un même plateau sont imprimées ensemble.
+  Voir l'exemple [`porte_cles.py`](3dlab/scripts/exemples/porte_cles.py).
+- **Trophée du catalogue** : quatre trophées paramétrés (texte, taille, couleurs), prêts en 0,1 s.
+
+| Trophée | Description | Hauteur |
 |---|---|---|
 | `etoile` | Figurine plate (corps en ruban torsadé, bras levés) qui brandit l'étoile du Maroc, pentagramme vert entrelacé. 2 plateaux : figurine à plat, socle. | 100–180 mm |
 | `khatam` | Étoile marocaine à 8 branches, torsadée et effilée. | 60–170 mm |
 | `zellige` | Étoiles empilées, tournées de 7,5° à chaque étage. | 60–170 mm |
 | `flamme` | Section en amande torsadée, moderne. | 60–170 mm |
 
-- Chaque plateau n'a qu'un seul changement de filament. Les pièces de même couleur partagent un filament.
-- Le texte est en relief sur le dessus du socle. Trop large, il passe sur deux lignes ; l'année est facultative.
-  Un texte qui resterait illisible (lettres de moins de 2,6 mm) est refusé avec un message clair.
+Contrôles faits à chaque modèle :
+- solides étanches et non vides, couleurs valides, plateau posé à z = 0, taille compatible avec l'imprimante ;
+- nombre de changements de filament estimé couche par couche, avec une alerte quand des couleurs se mêlent sur les
+  mêmes couches (chaque changement purge du filament) ;
+- au plus 4 couleurs pour un AMS lite ; les pièces de même couleur partagent un filament ;
+- texte de trophée : passage sur deux lignes si besoin, refus clair s'il restait illisible (lettres < 2,6 mm).
 
 ## Prérequis
 
@@ -67,7 +79,7 @@ demander ». Pour une démonstration sans interruption, `/3DSetup` affiche la r�
 
 | Variable | Défaut |
 |---|---|
-| `THREEDLAB_OUT` | `~/3DLab/trophees` : modèles, aperçus et projets |
+| `THREEDLAB_OUT` | `~/3DLab/creations` : modèles, scripts, aperçus et projets |
 | `THREEDLAB_BAMBU` | `/Applications/BambuStudio.app/Contents/MacOS/BambuStudio` |
 | `THREEDLAB_BLENDER` | `/Applications/Blender.app/Contents/MacOS/Blender` |
 | `THREEDLAB_MACHINE` | `Bambu Lab A1 mini 0.4 nozzle` (nom du preset machine Bambu Studio) |
@@ -83,20 +95,21 @@ un modèle trop grand est refusé avant l'export.
 
 ```
 3dlab/scripts/3dlab verifier
-3dlab/scripts/3dlab apercu --style etoile --hauteur 150 --texte 'ASSISES DE L’AUSIM' --annee 2026 --couleur '#C1272D'
+3dlab/scripts/3dlab construire --nom 'porte-clés' 3dlab/scripts/exemples/porte_cles.py
+3dlab/scripts/3dlab apercu --style etoile --hauteur 150 --texte 'ASSISES DE L’AUSIM' --annee 2026
 3dlab/scripts/3dlab montrer
 3dlab/scripts/3dlab etat
-3dlab/scripts/3dlab bambu
+3dlab/scripts/3dlab bambu --remplace '#C1272D=#E85A9B'
 ```
 
 ## Comment ça marche
 
 - Géométrie : [manifold3d](https://github.com/elalish/manifold), un moteur booléen dont les maillages sont
-  garantis étanches, et shapely pour les contours 2D. Un modèle se génère en environ 0,1 s.
+  garantis étanches, et shapely pour les contours 2D. Un modèle se génère en une fraction de seconde.
 - Aperçu : un script Blender construit la scène avec l'API de données, puis passe la vue 3D en plein écran, en
-  vue caméra et en rendu temps réel.
-- Projet Bambu : la CLI de Bambu Studio assemble les pièces et attribue les filaments, avec un plateau par pièce
-  imprimée. Le projet n'est pas tranché.
+  vue caméra et en rendu temps réel ; le cadrage s'adapte à l'objet (plongeant pour un objet plat).
+- Projet Bambu : la CLI de Bambu Studio assemble les pièces et attribue les filaments, avec un plateau Bambu par
+  plateau de pièces. Le projet n'est pas tranché.
 
 ## Licence
 
