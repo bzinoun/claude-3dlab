@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "3dlab",
+  "description": "Trophées imprimables en 3D avec Claude Code : modéliser, voir dans Blender, envoyer vers Bambu Studio",
+  "owner": {
+    "name": "bzinoun",
+    "url": "https://github.com/bzinoun"
+  },
+  "plugins": [
+    {
+      "name": "3dlab",
+      "description": "Trophées imprimables en 3 commandes : /3DBuild (modéliser), /3DShow (aperçu Blender), /3DPrint (projet Bambu)",
+      "version": "1.0.0",
+      "source": "./3dlab",
+      "category": "productivity"
+    }
+  ]
+}

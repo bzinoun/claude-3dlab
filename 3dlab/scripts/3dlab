@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Lanceur du plugin 3dlab : trouve (ou crée au premier appel) un Python avec les dépendances, puis lance demo.py.
+#   THREEDLAB_PYTHON  interpréteur à utiliser tel quel (facultatif)
+#   THREEDLAB_VENV    environnement créé au premier appel (défaut : ~/.3dlab/venv)
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PY="${THREEDLAB_PYTHON:-}"
+if [ -z "$PY" ]; then
+  VENV="${THREEDLAB_VENV:-$HOME/.3dlab/venv}"
+  if ! "$VENV/bin/python" -c "import manifold3d, trimesh, shapely, matplotlib" 2>/dev/null; then
+    echo "Première utilisation : installation des dépendances Python dans $VENV (environ 1 min)…" >&2
+    python3 -m venv "$VENV"
+    "$VENV/bin/python" -m pip install -q --upgrade pip
+    "$VENV/bin/python" -m pip install -q -r "$ROOT/requirements.txt"
+  fi
+  PY="$VENV/bin/python"
+fi
+exec "$PY" "$ROOT/demo.py" "$@"

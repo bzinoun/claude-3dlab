@@ -1,0 +1,18 @@
+{
+  "name": "3dlab",
+  "description": "Trophées imprimables sur Bambu Lab A1 mini + AMS lite : /3DBuild, /3DShow, /3DPrint",
+  "version": "1.0.0",
+  "author": {
+    "name": "bzinoun",
+    "url": "https://github.com/bzinoun"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/bzinoun/claude-3dlab",
+  "keywords": [
+    "3d-printing",
+    "bambu-lab",
+    "blender",
+    "trophy",
+    "manifold3d"
+  ]
+}
