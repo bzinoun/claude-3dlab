@@ -1,5 +1,6 @@
-manifold3d>=3.0
-trimesh>=4.0
-shapely>=2.0
-matplotlib>=3.7
-numpy>=1.24
+# versions testées : manifold3d 3.5.4, trimesh 5.1.1, shapely 2.1.2, matplotlib 3.10.9, numpy 2.2.6 (Python 3.10)
+manifold3d>=3.5,<4
+trimesh>=5.1,<6
+shapely>=2.1,<3
+matplotlib>=3.10,<4
+numpy>=2.2,<3

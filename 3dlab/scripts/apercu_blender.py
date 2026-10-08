@@ -102,7 +102,12 @@ w = bpy.data.worlds.new("w")
 sc.world = w
 w.use_nodes = True
 w.node_tree.nodes["Background"].inputs[0].default_value = (0.02, 0.02, 0.025, 1)
-sc.render.engine = "BLENDER_EEVEE"
+for moteur in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"):  # Blender 5.x, puis 4.2 à 4.5
+    try:
+        sc.render.engine = moteur
+        break
+    except TypeError:  # nom de moteur inconnu de cette version
+        pass
 
 
 def vue_3d():

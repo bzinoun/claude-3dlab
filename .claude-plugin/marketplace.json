@@ -9,8 +9,8 @@
   "plugins": [
     {
       "name": "3dlab",
-      "description": "Trophées imprimables en 3 commandes : /3DBuild (modéliser), /3DShow (aperçu Blender), /3DPrint (projet Bambu)",
-      "version": "1.0.1",
+      "description": "Trophées imprimables en 4 commandes : /3DBuild (modéliser), /3DShow (aperçu Blender), /3DPrint (projet Bambu), /3DSetup (installation)",
+      "version": "1.1.0",
       "source": "./3dlab",
       "category": "productivity"
     }

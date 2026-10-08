@@ -19,7 +19,7 @@ from shapely.affinity import scale as sscale, translate as stranslate
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import unary_union
 
-from trophee_art import cs_from_polygon, fit_text, to_mesh
+from trophee_art import bloc_texte, cs_from_polygon, to_mesh
 
 T = 8.0                    # épaisseur de la figurine (imprimée à plat)
 STAR_RELIEF = 1.2          # 6 couches de vert : couvrant sur le rouge
@@ -150,17 +150,13 @@ def socle(texte: str, annee: str):
     mortaise = mf.Manifold.cube((TAB_W + 2 * CLEAR, T + 2 * CLEAR, TAB_H + 1), center=True) \
         .translate((0, slot_y, BASE_H - TAB_H / 2 + 0.5))
     noir = noir - mortaise
+    # texte : bande entre le bord avant du dessus (+1,8 mm) et 7 mm devant la mortaise
     front = -BASE_TOP[1] / 2
-    lignes = [(t, size, yc) for t, size, yc in ((texte, 4.4, front + 12.5), (annee, 5.5, front + 5.2)) if t.strip()]
-    if len(lignes) == 1:  # une seule ligne (pas d'année) : centrée dans la bande de texte
-        lignes = [(lignes[0][0], lignes[0][1], front + 8.85)]
-    parts = []
-    for t, size, yc in lignes:
-        g = fit_text(t, BASE_TOP[0] - 10, size)
-        minx, miny, maxx, maxy = g.bounds
-        cs = cs_from_polygon(g).translate((-(minx + maxx) / 2, yc - (miny + maxy) / 2))
-        parts.append(mf.Manifold.extrude(cs, TEXT_RELIEF + 0.01).translate((0, 0, BASE_H - 0.01)))
-    return noir, (mf.Manifold.batch_boolean(parts, mf.OpType.Add) if parts else mf.Manifold())
+    g = bloc_texte(texte, annee, BASE_TOP[0] - 10, front + 1.8, front + 15.6, 4.4, 5.5)
+    if g is None:
+        return noir, mf.Manifold()
+    texte_m = mf.Manifold.extrude(cs_from_polygon(g), TEXT_RELIEF + 0.01).translate((0, 0, BASE_H - 0.01))
+    return noir, texte_m
 
 
 def build(texte="ASSISES DE L'AUSIM", annee="2026", hauteur=150.0):

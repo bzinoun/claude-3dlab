@@ -6,8 +6,8 @@ Socle noir + sculpture et texte (sur le dessus du socle) dans la 2e couleur : un
 filament, au sommet du socle. Tout s'imprime debout, sans support (pentes < 45°).
 """
 import argparse
+import functools
 import math
-import sys
 import time
 from pathlib import Path
 
@@ -16,6 +16,7 @@ import numpy as np
 import trimesh
 from matplotlib.font_manager import FontProperties
 from matplotlib.textpath import TextPath
+from shapely.affinity import translate as stranslate
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
@@ -24,6 +25,9 @@ FONT = FontProperties(fname=str(_ARIAL_BLACK)) if _ARIAL_BLACK.exists() else Fon
 BASE_W, BASE_D, BASE_H = 84.0, 62.0, 20.0
 RELIEF = 1.0       # 5 couches : le texte reste couvrant sur le noir
 SCULPT_Y = 7.0     # sculpture reculée pour laisser la place au texte devant
+TAILLE_MIN = 3.6   # corps mini du texte (mm) : en Arial Black, traits ≥ 0,7 mm, imprimables à la buse 0,4
+INTERLIGNE = 1.6   # espace entre deux lignes de texte (mm)
+CAPITALE = 0.71    # hauteur des capitales / corps, en Arial Black
 
 
 # ------------------------------------------------------------------ géométrie de base
@@ -54,12 +58,74 @@ def text_poly(txt: str, size: float) -> Polygon:
     return out
 
 
-def fit_text(txt: str, max_w: float, max_size: float) -> Polygon:
-    g = text_poly(txt, max_size)
-    w = g.bounds[2] - g.bounds[0]
-    if w > max_w:
-        g = text_poly(txt, max_size * max_w / w)
-    return g
+class TexteTropLong(ValueError):
+    """Le texte ne tient pas lisiblement sur le socle, même sur deux lignes."""
+
+
+def normalise(txt: str) -> str:
+    """Espaces simples et apostrophe typographique (’) : le texte rend pareil quel que soit son chemin."""
+    return " ".join(txt.replace("'", "’").split())
+
+
+@functools.lru_cache(maxsize=256)
+def _mesure(txt: str) -> tuple[float, float]:
+    """(largeur, hauteur) du texte pour un corps de 1 mm."""
+    b = text_poly(txt, 10.0).bounds
+    return (b[2] - b[0]) / 10.0, (b[3] - b[1]) / 10.0
+
+
+def _coupe(txt: str):
+    """Deux lignes, coupées à l'espace qui rend la plus large des deux la plus courte possible."""
+    mots = txt.split()
+    if len(mots) < 2:
+        return None
+    coupes = [(" ".join(mots[:i]), " ".join(mots[i:])) for i in range(1, len(mots))]
+    return min(coupes, key=lambda c: max(_mesure(c[0])[0], _mesure(c[1])[0]))
+
+
+def bloc_texte(texte: str, annee: str, largeur: float, y_bas: float, y_haut: float,
+               taille_texte: float, taille_annee: float):
+    """Texte du socle (géométrie 2D) centré en x et dans la bande [y_bas, y_haut], ou None s'il est vide.
+    Un texte trop large passe sur deux lignes plutôt que de rapetisser ; l'année (facultative) va dessous.
+    Lève TexteTropLong si les lettres devaient descendre sous TAILLE_MIN."""
+    texte, annee = normalise(texte), normalise(annee)
+    lignes = []
+    if texte:
+        t1 = min(taille_texte, largeur / _mesure(texte)[0])
+        lignes = [(texte, t1)]
+        coupe = _coupe(texte) if t1 < 0.85 * taille_texte else None
+        if coupe:
+            t2 = min(taille_texte, largeur / max(_mesure(c)[0] for c in coupe))
+            if t2 > t1:
+                lignes = [(coupe[0], t2), (coupe[1], t2)]
+    if annee:
+        lignes.append((annee, min(taille_annee, largeur / _mesure(annee)[0])))
+    if not lignes:
+        return None
+    n_texte = len(lignes) - (1 if annee else 0)  # lignes du texte, puis celle de l'année
+    # le bloc ne doit pas déborder de la bande : on réduit toutes les lignes du même facteur
+    ecarts = INTERLIGNE * (len(lignes) - 1)
+    hauteur = sum(_mesure(t)[1] * s for t, s in lignes)
+    k = min(1.0, (y_haut - y_bas - ecarts) / hauteur)
+    lignes = [(t, s * k) for t, s in lignes]
+    s_min = min(s for _, s in lignes)
+    if s_min < TAILLE_MIN:
+        dans_texte = n_texte > 0 and min(s for _, s in lignes[:n_texte]) == s_min
+        trop_long = texte if dans_texte else annee
+        essai = ("sur la ligne de l'année (jamais coupée)" if not dans_texte
+                 else "même sur deux lignes" if " " in texte else "sur une ligne (un seul mot)")
+        raise TexteTropLong(
+            f"Texte trop long pour le socle : « {trop_long[:60]}{'…' if len(trop_long) > 60 else ''} » "
+            f"({len(trop_long)} caractères). Les lettres feraient {s_min * CAPITALE:.1f} mm de haut {essai}, "
+            f"minimum {TAILLE_MIN * CAPITALE:.1f} mm pour rester lisibles : raccourcir ce texte.")
+    haut = (y_bas + y_haut) / 2 + (sum(_mesure(t)[1] * s for t, s in lignes) + ecarts) / 2
+    morceaux = []
+    for t, s in lignes:
+        g = text_poly(t, s)
+        minx, miny, maxx, maxy = g.bounds
+        morceaux.append(stranslate(g, -(minx + maxx) / 2, haut - maxy))
+        haut -= (maxy - miny) + INTERLIGNE
+    return unary_union(morceaux)
 
 
 def socle(texte: str, annee: str) -> mf.Manifold:
@@ -75,18 +141,12 @@ def socle(texte: str, annee: str) -> mf.Manifold:
 
 def texte_dessus(texte: str, annee: str) -> mf.Manifold:
     """Texte en relief sur le DESSUS du socle, devant la sculpture, dans la couleur de la sculpture :
-    contraste franc et toujours un seul changement de filament (tout ce qui dépasse du socle = couleur 2)."""
-    lignes = [(t, size, yc) for t, size, yc in ((texte, 4.6, -BASE_D / 2 + 13.5), (annee, 6.5, -BASE_D / 2 + 6.0))
-              if t.strip()]
-    if len(lignes) == 1:  # une seule ligne (pas d'année) : centrée dans la bande de texte
-        lignes = [(lignes[0][0], lignes[0][1], -BASE_D / 2 + 9.75)]
-    parts = []
-    for t, size, yc in lignes:
-        g = fit_text(t, BASE_W - 12, size)
-        minx, miny, maxx, maxy = g.bounds
-        cs = cs_from_polygon(g).translate((-(minx + maxx) / 2, yc - (miny + maxy) / 2))
-        parts.append(mf.Manifold.extrude(cs, RELIEF + 0.01).translate((0, 0, BASE_H - 0.01)))
-    return mf.Manifold.batch_boolean(parts, mf.OpType.Add) if parts else mf.Manifold()
+    contraste franc et toujours un seul changement de filament (tout ce qui dépasse du socle = couleur 2).
+    Bande : du chanfrein avant (2,8 mm) + 0,9 mm jusqu'à 1,5 mm devant le pied de la sculpture (rayon 19 mm)."""
+    g = bloc_texte(texte, annee, BASE_W - 12, -BASE_D / 2 + 3.7, SCULPT_Y - 19.0 - 1.5, 4.6, 6.5)
+    if g is None:
+        return mf.Manifold()
+    return mf.Manifold.extrude(cs_from_polygon(g), RELIEF + 0.01).translate((0, 0, BASE_H - 0.01))
 
 
 # ------------------------------------------------------------------ sculptures

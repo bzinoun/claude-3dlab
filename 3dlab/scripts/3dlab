@@ -8,10 +8,23 @@ PY="${THREEDLAB_PYTHON:-}"
 if [ -z "$PY" ]; then
   VENV="${THREEDLAB_VENV:-$HOME/.3dlab/venv}"
   if ! "$VENV/bin/python" -c "import manifold3d, trimesh, shapely, matplotlib" 2>/dev/null; then
+    if ! command -v python3 >/dev/null 2>&1; then
+      echo "python3 introuvable : installer Python 3.10 ou plus récent (https://www.python.org/downloads/)," \
+           "ou définir THREEDLAB_PYTHON." >&2
+      exit 1
+    fi
+    if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
+      echo "Python 3.10 ou plus récent requis, trouvé : $(python3 --version 2>&1)." \
+           "Installer un Python récent ou définir THREEDLAB_PYTHON." >&2
+      exit 1
+    fi
     echo "Première utilisation : installation des dépendances Python dans $VENV (environ 1 min)…" >&2
-    python3 -m venv "$VENV"
-    "$VENV/bin/python" -m pip install -q --upgrade pip
-    "$VENV/bin/python" -m pip install -q -r "$ROOT/requirements.txt"
+    if ! { python3 -m venv "$VENV" \
+           && "$VENV/bin/python" -m pip install -q --upgrade pip \
+           && "$VENV/bin/python" -m pip install -q -r "$ROOT/requirements.txt"; }; then
+      echo "Installation des dépendances impossible (réseau ?). Relancer la commande : l'installation reprendra." >&2
+      exit 1
+    fi
   fi
   PY="$VENV/bin/python"
 fi

@@ -6,14 +6,14 @@ allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/scripts/3dlab:*), AskUserQuestion
 
 Besoin exprimé : $ARGUMENTS
 
-Tu modélises un trophée pour une imprimante Bambu Lab A1 mini avec AMS lite (PLA). Réponses courtes : la commande
-sert souvent en démonstration devant un public. Ne lis aucun fichier et n'explore aucun dossier.
+Tu modélises un trophée pour une imprimante Bambu Lab avec AMS (réglages par défaut : A1 mini, PLA). Réponses
+courtes : la commande sert souvent en démonstration devant un public. Ne lis aucun fichier et n'explore aucun dossier.
 La demande est souvent dictée : « Ozim », « Osim », « Ausime » = AUSIM.
 
 ## 1. Comprendre le besoin
 Extraire du besoin :
-- **texte** gravé sur le socle (nom de l'événement, en majuscules) et **année** (facultative : `--annee ""`
-  pour un trophée sans année, le texte est alors centré) ;
+- **texte** gravé sur le socle (nom de l'événement) et **année** (facultative : `--annee ''` pour un trophée sans
+  année, le texte est alors centré). Un texte long passe automatiquement sur deux lignes ;
 - **style** : « figurine », « étoile du Maroc », « personnage », « vainqueur » → `etoile` ; « géométrique »,
   « marocain » → `khatam` ; « mosaïque » → `zellige` ; « moderne », « épuré » → `flamme` ;
 - **taille** (hauteur du trophée monté, en mm) et **couleurs**.
@@ -34,14 +34,18 @@ et proposer le style le plus proche, sans rien générer.
 | Drapeau du Maroc | #C1272D | #006233 | #151515 |
 | Bleu AUSIM | #1F5FAF | #F2F2F2 | #151515 |
 | Noir et blanc | #F2F2F2 | #151515 | #151515 |
-| couleur libre | hexadécimal le plus proche | | |
+| couleur libre | hexadécimal #RRGGBB le plus proche | | |
 
 Si le besoin donne déjà tout, ne poser aucune question.
 
 ## 3. Modéliser
-Une seule commande :
-`${CLAUDE_PLUGIN_ROOT}/scripts/3dlab apercu --no-open --style <style> --texte "<TEXTE>" --annee "<année>" --hauteur <mm> --couleur "<#hex>" --etoile "<#hex>" --socle "<#hex>"`
+Une seule commande. Texte et année entre **guillemets simples**, en remplaçant chaque apostrophe droite ' par
+l'apostrophe typographique ’ (ainsi `$`, `"` et les accents graves restent du texte) :
+`${CLAUDE_PLUGIN_ROOT}/scripts/3dlab apercu --no-open --style <style> --texte '<TEXTE>' --annee '<année>' --hauteur <mm> --couleur '<#hex>' --etoile '<#hex>' --socle '<#hex>'`
+
+Si la commande répond « Texte trop long pour le socle », proposer 2 ou 3 versions plus courtes (abréviation, sigle)
+avec AskUserQuestion, en-tête « Texte », puis relancer avec la version choisie.
 
 ## 4. Répondre en 2 lignes
-Style, cotes affichées par la commande, couleurs. Puis : « `/3DShow` pour le voir dans Blender, `/3DPrint` pour
+Style, cotes et filaments affichés par la commande. Puis : « `/3DShow` pour le voir dans Blender, `/3DPrint` pour
 l'envoyer sur Bambu Studio. »
