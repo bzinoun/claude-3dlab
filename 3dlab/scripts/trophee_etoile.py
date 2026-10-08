@@ -151,14 +151,16 @@ def socle(texte: str, annee: str):
         .translate((0, slot_y, BASE_H - TAB_H / 2 + 0.5))
     noir = noir - mortaise
     front = -BASE_TOP[1] / 2
-    l1 = fit_text(texte, BASE_TOP[0] - 10, 4.4)
-    l2 = fit_text(annee, BASE_TOP[0] - 10, 5.5)
+    lignes = [(t, size, yc) for t, size, yc in ((texte, 4.4, front + 12.5), (annee, 5.5, front + 5.2)) if t.strip()]
+    if len(lignes) == 1:  # une seule ligne (pas d'année) : centrée dans la bande de texte
+        lignes = [(lignes[0][0], lignes[0][1], front + 8.85)]
     parts = []
-    for g, yc in ((l1, front + 12.5), (l2, front + 5.2)):
+    for t, size, yc in lignes:
+        g = fit_text(t, BASE_TOP[0] - 10, size)
         minx, miny, maxx, maxy = g.bounds
         cs = cs_from_polygon(g).translate((-(minx + maxx) / 2, yc - (miny + maxy) / 2))
         parts.append(mf.Manifold.extrude(cs, TEXT_RELIEF + 0.01).translate((0, 0, BASE_H - 0.01)))
-    return noir, mf.Manifold.batch_boolean(parts, mf.OpType.Add)
+    return noir, (mf.Manifold.batch_boolean(parts, mf.OpType.Add) if parts else mf.Manifold())
 
 
 def build(texte="ASSISES DE L'AUSIM", annee="2026", hauteur=150.0):

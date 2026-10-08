@@ -76,14 +76,17 @@ def socle(texte: str, annee: str) -> mf.Manifold:
 def texte_dessus(texte: str, annee: str) -> mf.Manifold:
     """Texte en relief sur le DESSUS du socle, devant la sculpture, dans la couleur de la sculpture :
     contraste franc et toujours un seul changement de filament (tout ce qui dépasse du socle = couleur 2)."""
-    l1 = fit_text(texte, BASE_W - 12, 4.6)
-    l2 = fit_text(annee, BASE_W - 12, 6.5)
+    lignes = [(t, size, yc) for t, size, yc in ((texte, 4.6, -BASE_D / 2 + 13.5), (annee, 6.5, -BASE_D / 2 + 6.0))
+              if t.strip()]
+    if len(lignes) == 1:  # une seule ligne (pas d'année) : centrée dans la bande de texte
+        lignes = [(lignes[0][0], lignes[0][1], -BASE_D / 2 + 9.75)]
     parts = []
-    for g, yc in ((l1, -BASE_D / 2 + 13.5), (l2, -BASE_D / 2 + 6.0)):
+    for t, size, yc in lignes:
+        g = fit_text(t, BASE_W - 12, size)
         minx, miny, maxx, maxy = g.bounds
         cs = cs_from_polygon(g).translate((-(minx + maxx) / 2, yc - (miny + maxy) / 2))
         parts.append(mf.Manifold.extrude(cs, RELIEF + 0.01).translate((0, 0, BASE_H - 0.01)))
-    return mf.Manifold.batch_boolean(parts, mf.OpType.Add)
+    return mf.Manifold.batch_boolean(parts, mf.OpType.Add) if parts else mf.Manifold()
 
 
 # ------------------------------------------------------------------ sculptures

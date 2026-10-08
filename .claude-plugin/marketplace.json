@@ -10,7 +10,7 @@
     {
       "name": "3dlab",
       "description": "Trophées imprimables en 3 commandes : /3DBuild (modéliser), /3DShow (aperçu Blender), /3DPrint (projet Bambu)",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source": "./3dlab",
       "category": "productivity"
     }

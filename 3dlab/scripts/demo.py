@@ -121,10 +121,17 @@ def modeliser(p: dict):
     return apercu, None, (p["socle"], couleur), f"{b[3]-b[0]:.0f} × {b[4]-b[1]:.0f} × {b[5]-b[2]:.0f} mm"
 
 
+def ancien_pid():
+    try:
+        return json.loads(DERNIER.read_text()).get("pid_blender")
+    except (OSError, ValueError):
+        return None
+
+
 def fermer_ancien_apercu():
     """Une seule fenêtre Blender d'aperçu à la fois : on ferme celle de l'essai précédent."""
     try:
-        pid = json.loads(DERNIER.read_text()).get("pid_blender")
+        pid = ancien_pid()
         comm = subprocess.run(["ps", "-p", str(pid), "-o", "comm="], capture_output=True, text=True).stdout
         if pid and "Blender" in comm:
             os.kill(pid, signal.SIGTERM)
@@ -136,7 +143,9 @@ def cmd_apercu(a):
     lim = (100, 180) if a.style == "etoile" else (60, 170)  # etoile : la figurine imprimée à plat doit tenir sur 180 mm
     if not lim[0] <= a.hauteur <= lim[1]:
         raise SystemExit(f"Hauteur hors plage pour {a.style} : {lim[0]} à {lim[1]} mm (plateau A1 mini 180 mm).")
-    p = {"style": a.style, "texte": a.texte.upper(), "annee": a.annee, "hauteur": a.hauteur,
+    if not a.texte.strip():
+        raise SystemExit("Le texte du socle est vide : indiquer au moins un nom d'événement.")
+    p = {"style": a.style, "texte": a.texte.strip().upper(), "annee": a.annee.strip(), "hauteur": a.hauteur,
          "couleur": a.couleur, "socle": a.socle, "etoile": a.etoile}
     t0 = time.time()
     apercu, _, _, cotes = modeliser(p)
@@ -150,7 +159,8 @@ def cmd_apercu(a):
     (dossier / "scene.json").write_text(json.dumps({"titre": f"{p['texte']} {p['annee']}", "pieces": pieces}))
     print(f"Modèle {a.style} : {cotes} (modélisation {time.time() - t0:.1f} s)")
     print(f"Fichiers : {dossier}")
-    DERNIER.write_text(json.dumps({"params": p, "dossier": str(dossier), "pid_blender": None}))
+    # on garde le numéro de la fenêtre d'aperçu encore ouverte : le prochain aperçu doit pouvoir la fermer
+    DERNIER.write_text(json.dumps({"params": p, "dossier": str(dossier), "pid_blender": ancien_pid()}))
     if not a.no_open:
         ouvrir_blender()
 

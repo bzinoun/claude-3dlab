@@ -12,7 +12,8 @@ La demande est souvent dictée : « Ozim », « Osim », « Ausime » = AUSIM.
 
 ## 1. Comprendre le besoin
 Extraire du besoin :
-- **texte** gravé sur le socle (nom de l'événement, en majuscules) et **année** ;
+- **texte** gravé sur le socle (nom de l'événement, en majuscules) et **année** (facultative : `--annee ""`
+  pour un trophée sans année, le texte est alors centré) ;
 - **style** : « figurine », « étoile du Maroc », « personnage », « vainqueur » → `etoile` ; « géométrique »,
   « marocain » → `khatam` ; « mosaïque » → `zellige` ; « moderne », « épuré » → `flamme` ;
 - **taille** (hauteur du trophée monté, en mm) et **couleurs**.
@@ -24,8 +25,8 @@ et proposer le style le plus proche, sans rien générer.
 - **Texte** (en-tête « Texte ») si aucun événement n'est cité : « ASSISES DE L'AUSIM 2026 (Recommandé) », « Autre texte ».
 - **Style** (en-tête « Style ») si aucun indice : « Figurine à l'étoile du Maroc (Recommandé) », « Khatam torsadé »,
   « Flamme moderne », « Zellige empilé ».
-- **Taille** (en-tête « Taille ») : « 150 mm (Recommandé) », « 120 mm », « 180 mm ». Plages possibles :
-  etoile 100–180 mm, autres styles 60–170 mm.
+- **Taille** (en-tête « Taille ») : « 150 mm (Recommandé) », « 120 mm », « 170 mm » (valables pour les 4 styles).
+  Plages possibles : etoile 100–180 mm, autres styles 60–170 mm.
 - **Couleurs** (en-tête « Couleurs ») : « Drapeau du Maroc », « Bleu AUSIM », « Noir et blanc ».
 
 | Couleurs | --couleur (corps + texte) | --etoile | --socle |
@@ -39,7 +40,7 @@ Si le besoin donne déjà tout, ne poser aucune question.
 
 ## 3. Modéliser
 Une seule commande :
-`${CLAUDE_PLUGIN_ROOT}/scripts/3dlab apercu --no-open --style <style> --texte "<TEXTE>" --annee <année> --hauteur <mm> --couleur "<#hex>" --etoile "<#hex>" --socle "<#hex>"`
+`${CLAUDE_PLUGIN_ROOT}/scripts/3dlab apercu --no-open --style <style> --texte "<TEXTE>" --annee "<année>" --hauteur <mm> --couleur "<#hex>" --etoile "<#hex>" --socle "<#hex>"`
 
 ## 4. Répondre en 2 lignes
 Style, cotes affichées par la commande, couleurs. Puis : « `/3DShow` pour le voir dans Blender, `/3DPrint` pour
